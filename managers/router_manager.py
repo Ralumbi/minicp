@@ -1,30 +1,35 @@
 import json
 import os
 import logging
+import time
 from utils.cmd import run_cmd
 
-# Setup logging
-logging.basicConfig(filename='/home/minicp/.config/minicp/router_manager.log', level=logging.DEBUG,
-                    format='%(asctime)s %(levelname)s: %(message)s')
+# Use current user's home directory
+HOME_DIR = os.path.expanduser("~")
+LOG_FILE = os.path.join(HOME_DIR, ".config/minicp/router_manager.log")
+CRED_FILE = os.path.join(HOME_DIR, ".config/minicp/ap_credentials.json")
 
-CRED_FILE = '/home/minicp/.config/minicp/ap_credentials.json'
+# Setup logging
+os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
+logging.basicConfig(filename=LOG_FILE, level=logging.DEBUG,
+                    format='%(asctime)s %(levelname)s: %(message)s')
 
 class RouterManager:
     def __init__(self, ifname: str = "wlan1"):
         self.ifname = ifname
 
-    def start_ap(self, ssid: str, psk: str, channel: int = 6) -> tuple[bool, str]:
-        logging.info(f"Starting AP on {self.ifname} with SSID {ssid}")
+    def start_ap(self, ifname: str, ssid: str, psk: str, channel: int = 6) -> tuple[bool, str]:
+        logging.info(f"Starting AP on {ifname} with SSID {ssid}")
         if not ssid:
             logging.error("SSID cannot be empty")
             return False, "SSID cannot be empty"
         if len(psk) < 8:
             logging.error("Password too short")
             return False, "Password must be at least 8 characters"
-        conn_name = f"Hotspot_{self.ifname}"
+        conn_name = f"Hotspot_{ifname}"
         run_cmd(['nmcli', 'con', 'delete', conn_name], timeout=5)
         out = run_cmd([
-            'nmcli', 'con', 'add', 'type', 'wifi', 'ifname', self.ifname,
+            'nmcli', 'con', 'add', 'type', 'wifi', 'ifname', ifname,
             'con-name', conn_name, 'ssid', ssid,
             'autoconnect', 'yes', 'wifi-sec.key-mgmt', 'wpa-psk',
             'wifi-sec.psk', psk, 'wifi.mode', 'ap',
@@ -38,31 +43,34 @@ class RouterManager:
         if "Error" in out2:
             logging.error(f"AP activation failed: {out2}")
             return False, out2
-        self.save_credentials(self.ifname, ssid, psk)
-        self.enable_internet_sharing()
+        self.save_credentials(ifname, ssid, psk)
+        self.enable_internet_sharing(ifname)
         logging.info("AP started successfully")
         return True, ""
 
-    def stop_ap(self) -> None:
-        logging.info(f"Stopping AP on {self.ifname}")
-        conn_name = f"Hotspot_{self.ifname}"
+    def stop_ap(self, ifname: str = None) -> None:
+        ifname = ifname or self.ifname
+        logging.info(f"Stopping AP on {ifname}")
+        conn_name = f"Hotspot_{ifname}"
         run_cmd(['nmcli', 'con', 'down', conn_name], timeout=5)
         run_cmd(['nmcli', 'con', 'delete', conn_name], timeout=5)
         logging.info("AP stopped")
 
-    def is_running(self) -> bool:
-        conn_name = f"Hotspot_{self.ifname}"
+    def is_running(self, ifname: str = None) -> bool:
+        ifname = ifname or self.ifname
+        conn_name = f"Hotspot_{ifname}"
         out = run_cmd(['nmcli', '-t', '-f', 'NAME,DEVICE', 'con', 'show', '--active'])
         running = any(
-            line.split(':', 1)[0] == conn_name and line.split(':', 1)[1] == self.ifname
+            line.split(':', 1)[0] == conn_name and line.split(':', 1)[1] == ifname
             for line in out.splitlines()
         )
-        logging.debug(f"AP running check for {self.ifname}: {running}")
+        logging.debug(f"AP running check for {ifname}: {running}")
         return running
 
-    def list_connected_devices(self) -> list[dict]:
-        logging.debug(f"Listing devices on {self.ifname}")
-        out = run_cmd(['arp', '-n', '-i', self.ifname])
+    def list_connected_devices(self, ifname: str = None) -> list[dict]:
+        ifname = ifname or self.ifname
+        logging.debug(f"Listing devices on {ifname}")
+        out = run_cmd(['arp', '-n', '-i', ifname])
         devices = []
         for line in out.splitlines()[1:]:
             parts = line.split()
@@ -71,12 +79,12 @@ class RouterManager:
         logging.debug(f"Found devices: {devices}")
         return devices
 
-    def enable_internet_sharing(self, client_ifname: str = "wlan0"):
-        logging.info(f"Enabling internet sharing from {client_ifname} to {self.ifname}")
+    def enable_internet_sharing(self, ifname: str, client_ifname: str = "wlan0"):
+        logging.info(f"Enabling internet sharing from {client_ifname} to {ifname}")
         run_cmd(['sysctl', '-w', 'net.ipv4.ip_forward=1'])
         run_cmd(['iptables', '-t', 'nat', '-A', 'POSTROUTING', '-o', client_ifname, '-j', 'MASQUERADE'])
-        run_cmd(['iptables', '-A', 'FORWARD', '-i', self.ifname, '-o', client_ifname, '-j', 'ACCEPT'])
-        run_cmd(['iptables', '-A', 'FORWARD', '-i', client_ifname, '-o', self.ifname, '-m', 'state', '--state', 'RELATED,ESTABLISHED', '-j', 'ACCEPT'])
+        run_cmd(['iptables', '-A', 'FORWARD', '-i', ifname, '-o', client_ifname, '-j', 'ACCEPT'])
+        run_cmd(['iptables', '-A', 'FORWARD', '-i', client_ifname, '-o', ifname, '-m', 'state', '--state', 'RELATED,ESTABLISHED', '-j', 'ACCEPT'])
         run_cmd(['sh', '-c', 'iptables-save > /etc/iptables/rules.v4'])
 
     def _load_credentials(self) -> dict:
@@ -111,3 +119,12 @@ class RouterManager:
             creds.get(ifname, {}).get('ssid', ''),
             creds.get(ifname, {}).get('psk', '')
         )
+
+    def monitor(self):
+        while True:
+            if not self.is_running():
+                ssid, psk = self.load_credentials(self.ifname)
+                if ssid and psk:
+                    logging.info(f"Restarting AP {ssid} on {self.ifname}")
+                    self.start_ap(self.ifname, ssid, psk)
+            time.sleep(60)

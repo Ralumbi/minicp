@@ -10,10 +10,28 @@ The main initial setup is to offer a wifi router setup with the use of an second
 * PHREEZE Dual Band USB Adapter
 
 #### Software
-* Raspberry PI 64-bit LITE
+* Raspberry PI OS LITE 64-bit
     * xserver-xorg
     * xinit
     * matchbox-window-manager
         * xterm
         * MiniCP
 
+### Features
+* Overview
+    * Connected wlan
+    * Connected Bluetooth
+
+* Wifi
+    * Connect to wifi network
+
+* Router
+    * Setup an Access Point
+
+* Bluetooth
+    * Connect to Bluetooth device
+        * You got to go back to minicp via the top left corner
+
+* USB
+    * Mount usb device
+        * (work in progress)

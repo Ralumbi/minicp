@@ -11,11 +11,12 @@ class BluetoothManagerFrame(tk.Frame):
         self.build_ui()
 
     def build_ui(self):
-        tk.Label(self, text="Bluetooth", font=(None,12,"bold")).pack(pady=10)
+        tk.Label(self, text="Bluetooth", font=(None, 14, "bold")).pack(pady=10)
         tk.Button(
             self,
             text="Open Bluetooth Manager",
             command=self.open_blueman,
+            font=(None, 12),
             width=25,
             height=2
         ).pack(pady=20)
@@ -23,7 +24,8 @@ class BluetoothManagerFrame(tk.Frame):
             self,
             text="Use the system Blueman GUI to scan, pair, and connect devices.",
             wraplength=300,
-            justify="center"
+            justify="center",
+            font=(None, 12)
         ).pack(padx=10)
 
     def open_blueman(self):
