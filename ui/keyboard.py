@@ -12,7 +12,7 @@ class KeyboardPopup(tk.Toplevel):
         self.input_var = tk.StringVar(value=target_entry.get())
         self.mode = 'lowercase'
 
-        tk.Entry(self, textvariable=self.input_var, font=(None, 12)).pack(fill=tk.X, padx=5, pady=5)
+        tk.Entry(self, textvariable=self.input_var, font=("Arial", 12)).pack(fill=tk.X, padx=5, pady=5)
         self.frame = tk.Frame(self)
         self.frame.pack()
 
@@ -45,7 +45,7 @@ class KeyboardPopup(tk.Toplevel):
             rowf.pack(fill=tk.X, pady=1)
             for key in row:
                 tk.Button(
-                    rowf, text=key, font=(None,10),
+                    rowf, text=key, font=("Arial",10),
                     command=lambda k=key: self.on_key(k)
                 ).pack(side=tk.LEFT, expand=True, fill=tk.BOTH, padx=1, pady=1)
 

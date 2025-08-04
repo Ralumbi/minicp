@@ -1,6 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
-from ui.keyboard import KeyboardPopup
+from tkinter import messagebox
 import os
 import subprocess
 import re
@@ -16,26 +15,31 @@ class UsbManagerFrame(tk.Frame):
 
     def build_ui(self):
         # Title
-        tk.Label(self, text="USB Manager", font=(None, 12, "bold")).pack(pady=10)
+        tk.Label(self, text="USB Manager", font=("Arial", 12, "bold")).pack(pady=5)
 
         # USB device list
-        tk.Label(self, text="Available USB Devices:", font=(None, 10)).pack(pady=5)
-        self.usb_list = tk.Listbox(self, height=4, font=(None, 10))
+        tk.Label(self, text="Available USB Devices:", font=("Arial", 10)).pack(pady=5)
+        self.usb_list = tk.Listbox(self, height=4, font=("Arial", 10))
         self.usb_list.pack(fill=tk.X, padx=5, pady=5)
         self.usb_list.bind('<<ListboxSelect>>', self.on_select)
-        tk.Button(self, text="Refresh", command=self.refresh_usb, font=(None, 10), width=10, height=2)\
+        tk.Button(self, text="Refresh", command=self.refresh_usb, font=("Arial", 10), width=10, height=1)\
             .pack(pady=5)
 
         # Mount status
-        tk.Label(self, text="Mount Status:", font=(None, 10)).pack(pady=5)
-        self.status_label = tk.Label(self, text="No device mounted", font=(None, 10))
+        tk.Label(self, text="Mount Status:", font=("Arial", 10)).pack(pady=5)
+        self.status_label = tk.Label(self, text="No device mounted", font=("Arial", 10))
         self.status_label.pack(pady=5)
 
         # Mount/Unmount buttons
-        tk.Button(self, text="Mount", command=self.mount_usb, font=(None, 10), width=10, height=2)\
-            .pack(pady=5)
-        tk.Button(self, text="Unmount", command=self.unmount_usb, font=(None, 10), width=10, height=2)\
-            .pack(pady=5)
+        button_frame = tk.Frame(self)
+        button_frame.pack(pady=5)
+
+        tk.Button(button_frame, text="Mount", command=self.mount_usb, font=("Arial", 10), width=10, height=1)\
+            .pack(side="left", padx=5)
+
+        tk.Button(button_frame, text="Unmount", command=self.unmount_usb, font=("Arial", 10), width=10, height=1)\
+            .pack(side="left", padx=5)
+        
 
         self.refresh_usb()
 
