@@ -18,7 +18,7 @@ class RouterManager:
     def __init__(self, ifname: str = "wlan1"):
         self.ifname = ifname
 
-    def start_ap(self, ifname: str, ssid: str, psk: str, channel: int = 6) -> tuple[bool, str]:
+    def start_ap(self, ifname: str, ssid: str, psk: str, band: str = 'bg', channel: int = None) -> tuple[bool, str]:
         logging.info(f"Starting AP on {ifname} with SSID {ssid}")
         if not ssid:
             logging.error("SSID cannot be empty")
@@ -29,7 +29,11 @@ class RouterManager:
         conn_name = f"Hotspot_{ifname}"
         run_cmd(['nmcli', 'con', 'delete', conn_name], timeout=5)
 
-        band = 'a' if channel >= 36 else 'bg'  # Auto-select band based on channel
+        if band == 'a':
+            channel = channel or 36  # Default to channel 36 for 5GHz
+        else:
+            band = 'bg'
+            channel = channel or 6   # Default to channel 6 for 2.4GHz
 
         out = run_cmd([
             'nmcli', 'con', 'add', 'type', 'wifi', 'ifname', ifname,
