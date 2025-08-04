@@ -35,7 +35,8 @@ apt update
 echo "Installing X server, matchbox window manager, and xterm..."
 apt install -y --no-install-recommends \
   xserver-xorg xinit x11-xserver-utils \
-  matchbox-window-manager xterm
+  matchbox-window-manager xterm \
+  python3-tk blueman
 
 echo "Installing git..."
 apt install -y git
