@@ -28,14 +28,18 @@ class RouterManager:
             return False, "Password must be at least 8 characters"
         conn_name = f"Hotspot_{ifname}"
         run_cmd(['nmcli', 'con', 'delete', conn_name], timeout=5)
+
+        band = 'a' if channel >= 36 else 'bg'  # Auto-select band based on channel
+
         out = run_cmd([
             'nmcli', 'con', 'add', 'type', 'wifi', 'ifname', ifname,
             'con-name', conn_name, 'ssid', ssid,
             'autoconnect', 'yes', 'wifi-sec.key-mgmt', 'wpa-psk',
             'wifi-sec.psk', psk, 'wifi.mode', 'ap',
-            'wifi.channel', str(channel),
+            'wifi.band', band, 'wifi.channel', str(channel),
             'ipv4.method', 'shared', 'ipv4.addresses', '192.168.4.1/24'
         ], timeout=15)
+
         if "Error" in out or not out:
             logging.error(f"AP setup failed: {out}")
             return False, out
